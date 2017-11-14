@@ -46,17 +46,17 @@
 				return tex2D(_CameraDepthTexture, uv).r;
 			}
 
-			float3 depthToWorldPosition(float depth, float2 uv, float4x4 inverseProjectionMatrix, float4x4 inverseViewMatrix) {
+			float3 depthToViewSpacePosition(float depth, float2 uv, float4x4 inverseProjectionMatrix, float4x4 inverseViewMatrix) {
 				float4 clipSpacePosition = float4(uv * 2.0 - 1.0, depth, 1.0);
 				float4 viewSpacePosition = mul(inverseProjectionMatrix, clipSpacePosition);
 
 				viewSpacePosition /= viewSpacePosition.w;
 
+				//return mul(inverseViewMatrix, viewSpacePosition).xyz;
 				return viewSpacePosition.xyz;
-				return mul(inverseViewMatrix, viewSpacePosition).xyz;
 			}
 
-			float worldPositionToDepth(float3 worldPosition, float4x4 projectionMatrix, float4x4 viewMatrix) {
+			float viewSpacePositionToDepth(float3 worldPosition, float4x4 projectionMatrix, float4x4 viewMatrix) {
 				float4 r0 = mul(projectionMatrix, float4(worldPosition, 1.0));
 				//r0 = mul(projectionMatrix, r0);
 				r0.xyz /= r0.w;
@@ -85,12 +85,12 @@
 
 				float3 mNormalWorld = mul(_InverseViewMatrix, float4(mNormal, 0.0)).xyz;
 				mDepth = getDepth(i.texcoord0.xy);
-				float3 worldSpacePosition = depthToWorldPosition(mDepth, i.texcoord0.xy, _InverseProjectionMatrix, _InverseViewMatrix);
+				float3 worldSpacePosition = depthToViewSpacePosition(mDepth, i.texcoord0.xy, _InverseProjectionMatrix, _InverseViewMatrix);
 
 				float occlusion = 0.0;
 				for(int i=0;i<100;i++) {
 					float3 randomSamplePointInSphere = worldSpacePosition + _RandomDirections[i] * _SampleRadius;
-					float randomSamplePointDepth = worldPositionToDepth(randomSamplePointInSphere, _ProjectionMatrix, _ViewMatrix);
+					float randomSamplePointDepth = viewSpacePositionToDepth(randomSamplePointInSphere, _ProjectionMatrix, _ViewMatrix);
 
 					float rangeCheck = abs(mDepth - randomSamplePointDepth) < _SampleRadius ? 1.0 : 0.0;
 					if (randomSamplePointDepth < mDepth - _Bias) {
